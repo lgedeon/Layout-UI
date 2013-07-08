@@ -150,6 +150,7 @@ function filter_where_date_less_than( $where = '', $date = '' ) {
 	return $where;
 }
 
+// use https://gist.github.com/johnpbloch/65d6a6884b77176fdd53 instead of this class
 class FilterWithArgs {
 	protected $filter;
 	protected $function;
