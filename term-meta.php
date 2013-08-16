@@ -32,232 +32,169 @@
  * License: GPLv2
  */
 
-/* 
- * TODO:
- *   Store and retrieve data.
- *   whitelist supports array
- *   allow some TM's to have featured images
+//
+// Term meta functions based on Post meta API
+//
+
+/**
+ * Add meta data field to a term.
+ *
+ * @since
+ * @link http://codex.wordpress.org/Function_Reference/add_term_meta
+ *
+ * @param int $term_id Term ID.
+ * @param string $taxonomy Taxonomy term is inside.
+ * @param string $meta_key Metadata name.
+ * @param mixed $meta_value Metadata value.
+ * @param bool $unique Optional, default is false. Whether the same key should not be added.
+ * @return int|bool Meta ID on success, false on failure.
  */
+function add_post_meta($term_id, $taxonomy, $meta_key, $meta_value, $unique = false) {
 
-
-/* 
- * Single class - multiple objects. Each object creates a CPT associated with one or more taxonomies,
- * the home page, or a post type. By default, the homepage term meta UI still uses a full "posts"
- * listing to allow editing of multiple scheduled updates and stored variations. If, however,
- * multiple containers per term is disabled for the "homepage" type the "posts" list is skipped. 
- * 
- * 
- * Only most recent single match is ever used. Update post date to make the prefered varation
- * the most recent and therefore active. Scheduled term meta containers and drafts will be used when
- * published.
- */
-if (!class_exists('Term_Meta')) {
-
-class Term_Meta {
-
-	private $_taxonomies;
-	private $_post_types;
-	private $_no_versions;
-	private $_layout_name;
-	private $_short_name;
-	private $_archive_elements;
-
-	/**
-	 * Accept values and place into instance variables.
-	 * 
-	 *
-	 * @param string|array $type        String assumed to be the name of a taxonomy. Array keys can be 'home', 'taxonomy', or 'post_type' and value is a taxonomy or CPT or null for home.
-	 * @param string|array $no_versions True if only one term meta conatainer per term allowed.
-	 * @param string       $layout_name If different than first taxonomy in $taxonomies
-	 * @param string       $short_name  Short version of $layout_name must but 20 characters or less
-	 */
-	public function __construct( $type, $no_versions = false, $layout_name = '', $short_name = '' ) {
-		$this->_no_versions = (bool) $no_versions;
-		
-		if ( is_string( $type ) ) {
-			$type = array( 'taxonomy' => $type );
-		}
-
-		foreach ( $type as $key => $value ) {
-			switch ( $key ) {
-				case 'taxonomy' :
-					if ( taxonomy_exists( $value ) ) {
-						$this->_taxonomies[] = $value;
-					}
-					break;
-				case 'post_type' :
-					if ( post_type_exists( $value ) ) {
-						$this->_post_types[] = $value;
-					}
-					break;
-				case 'home' :
-					$this->_layout_name = $layout_name ?: 'home';
-					$this->_short_name = 'TM_home'; // hard-coding this one for home because home behaves different
-				default :
-					return;
-			}
-				
-		}
-
-		if ( empty( $this->_taxonomies ) && empty( $this->_post_types ) ) {
-			wp_die('no valid values provided to construct method of Term_Meta');
-		}
-
-		$names = array_merge( $this->_taxonomies, $this->_post_types );
-		$this->_layout_name = $layout_name ?: implode( '', array_map( 'ucwords', $names ) );
-		$this->_short_name = $short_name ?: 'TM_' . strtolower( substr( $this->_layout_name, 0, 17 ) );
-	}
-
-	/**
-	 * Register a custom post type to store data associtated with a .
-	 *
-	 * @param array $supports   Specify whether this term meta container has a thumbnail, title, editor, etc.
-	 * @param array $show_ui    Allow editors to control the data directly through a normal cpt interface.
-	 */
-	public function setup( $supports = array(), $show_ui = true ) {
-
-		$labels = array(
-			'name' => "$this->_layout_name Layouts",
-			'singular_name' => "$this->_layout_name Layout",
-			'add_new' => 'Add New',
-			'add_new_item' => "Add New $this->_layout_name Layout",
-			'edit_item' => "Edit $this->_layout_name Layout",
-			'new_item' => "New $this->_layout_name Layout",
-			'all_items' => "$this->_layout_name Layouts",
-			'view_item' => "View $this->_layout_name Layout",
-			'menu_name' => "$this->_layout_name Layouts"
-		);
-
-		foreach ((array) $supports as $support) {
-			//sanitize against whitelist
-		}
-
-		$args = array(
-			'labels' => $labels,
-			'public' => true,
-			'exclude_from_search' => true,
-			'publicly_queryable' => true, // may need this for rewrites - todo: find out
-			'show_ui' => (bool) $show_ui,
-			'show_in_menu' => 'archive_layouts',
-			'query_var' => true, //do we need a query var?
-			'capability_type' => 'page',
-			'menu_position' => 20,
-			'supports' => $supports,
-			'taxonomies' => $this->_taxonomies,
-		);
-
-		register_post_type( $this->_short_name, $args);
-		
-	}
-
-
-	/** deprecate?
-	 * Return data array for most recent published Archive Layout that matches the current archive page.
-	 */
-	function get_data () {
-		
-	}
-
-	/**
-	 * Set-up caching
-	 */
-}
-
+    return add_metadata('post', $post_id, $meta_key, $meta_value, $unique);
 }
 
 /**
- * Create a top level menu for various taxonomy's ALs to sit under. 
+ * Remove metadata matching criteria from a term.
+ *
+ * You can match based on the key, or key and value. Removing based on key and
+ * value, will keep from removing duplicate metadata with the same key. It also
+ * allows removing all metadata matching key, if needed.
+ *
+ * @since
+ * @link http://codex.wordpress.org/Function_Reference/delete_term_meta
+ *
+ * @param int $term_id Term ID
+ * @param string $taxonomy Taxonomy term is inside.
+ * @param string $meta_key Metadata name.
+ * @param mixed $meta_value Optional. Metadata value.
+ * @return bool True on success, false on failure.
  */
-function archive_layouts_menu() {
-	add_menu_page('Archive Layouts', 'Archive Layouts', 'manage_options', 'archive_layouts', '', '', 20);
+function delete_post_meta($term_id, $taxonomy, $meta_key, $meta_value = '') {
+
+    return delete_metadata('post', $post_id, $meta_key, $meta_value);
 }
 
-add_action('admin_menu', 'archive_layouts_menu');
-
-/*
- * Initialize all registered AL's
+/**
+ * Retrieve post meta field for a post.
+ *
+ * @since
+ * @link http://codex.wordpress.org/Function_Reference/get_term_meta
+ *
+ * @param int $term_id Post ID.
+ * @param string $taxonomy Taxonomy term is inside.
+ * @param string $key Optional. The meta key to retrieve. By default, returns data for all keys.
+ * @param bool $single Whether to return a single value.
+ * @return mixed Will be an array if $single is false. Will be value of meta data field if $single
+ *  is true.
  */
-function archive_layouts_init() {
-	$archive_layouts = get_archive_layouts_list();
+function get_term_meta($term_id, $taxonomy, $key = '', $single = false) {
 
-	foreach ( $archive_layouts as $archive_layout ) {
-		$archive_layout_objects[] = new Archive_Layout( $archive_layout['taxonomies'], $archive_layout['layout_name'], $archive_layout['short_name'] );
-		end($archive_layout_objects)->setup( $archive_layout['supports'] );
-	}
+    return get_metadata('post', $post_id, $key, $single);
 }
 
-// Don't do all the setup unless we actually need it, but admin_init is too late.
-if ( is_admin() ) {
-	// Add late so that CPT's have time to be registered.
-	add_action( 'init', 'archive_layouts_init', 50 );
-}
-
-/* 
- * Setup defaults and allow addtional.
- * 
- * Note to implementors: always use 'archive_layouts_list' filter to register, rather instantiating
- * manually so that it will be setup correctly on the front-end and in the admin.
- * 
- * Note for Unit Tests: should remove any archive layout with empty or non-valid taxonomies, should
- * generate a name if none provided, and should calculate a shortname of 20 characters or less.
+/**
+ * Update term meta field based on term ID.
+ *
+ * Use the $prev_value parameter to differentiate between meta fields with the
+ * same key and term ID.
+ *
+ * If the meta field for the term does not exist, it will be added.
+ *
+ * @since
+ * @link http://codex.wordpress.org/Function_Reference/update_term_meta
+ *
+ * @param int $term_id Term ID.
+ * @param string $taxonomy Taxonomy term is inside.
+ * @param string $meta_key Metadata key.
+ * @param mixed $meta_value Metadata value.
+ * @param mixed $prev_value Optional. Previous value to check before removing.
+ * @return bool True on success, false on failure.
  */
-function get_archive_layouts_list() {
-	// Declare default archive layouts and allow themes and plugins to over-ride as needed.
-	$archive_layouts = apply_filters( 'archive_layouts_list', array(
-		array(
-			'taxonomies' => 'category',
-			'supports' => array(),
-		),
-		array(
-			'taxonomies' => 'post_tag',
-			'supports' => array(),
-			'layout_name' => 'Tags',
-		),
-	));
+function update_term_meta($term_id, $taxonomy, $meta_key, $meta_value, $prev_value = '') {
 
-	foreach ( $archive_layouts as $archive_layout ) {
-		foreach ((array) $archive_layout['taxonomies'] as $taxonomy) {
-			if (taxonomy_exists($taxonomy) || 'home' == $taxonomy) {
-				$taxonomies[] = $taxonomy;
-			}
-		}
-
-		if ( empty($taxonomies) ) {
-			continue;
-		}
-
-		$archive_layout['taxonomies'] = $taxonomies;
-		$archive_layout['layout_name'] = ( empty( $archive_layout['layout_name'] ) ) ? implode( '', array_map( 'ucwords', $taxonomies ) ) : $archive_layout['layout_name'];
-		$archive_layout['short_name'] = strtolower( substr( $archive_layout['layout_name'], 0, 17 ) ) . '_al';
-
-		$archive_layouts_list[] = $archive_layout;
-	}
-
-	return $archive_layouts_list;	
+    return update_metadata('post', $post_id, $meta_key, $meta_value, $prev_value);
 }
 
-function archive_layout_content() {
-	$archive_layouts = get_archive_layouts_list();
+/**
+ * Delete everything from term meta matching meta key.
+ *
+ * @since
+ *
+ * @param string $term_meta_key Key to search for when deleting.
+ * @param string $taxonomy The taxonomy to work against.
+ * @return bool Whether the post meta key was deleted from the database
+ */
+function delete_term_meta_by_key($term_meta_key, $taxonomy) {
 
-	$queried_object = get_queried_object();
-	var_dump( $queried_object );
-
-	foreach ( $archive_layouts as $archive_layout ) {
-		if ( in_array( $queried_object['taxonomy'], $archive_layout['taxonomies'] ) ) {
-			$post_types[] = $archive_layout['short_name'];
-		}
-	}
-
-	$args = array(
-		'post_type' => $post_types,
-		'tax_query' => array(
-			array(
-				'taxonomy' => $queried_object->taxonomy,
-				'field' => 'id',
-				'terms' => $queried_object->term_id,
-			)
-		)
-	);
-
-	$archive_layout_object = new WP_Query( $args );
+    return delete_metadata( 'post', null, $term_meta_key, '', true );
 }
+
+/**
+ * hmm... this one is going to take a little thought
+ *
+ * Retrieve term meta fields, based on term ID.
+ *
+ * The term meta fields are retrieved from the cache where possible,
+ * so the function is optimized to be called more than once.
+ *
+ * @since
+ * @link http://codex.wordpress.org/Function_Reference/get_post_custom
+ *
+ * @param int $post_id Post ID.
+ * @return array
+ *
+function get_post_custom( $post_id = 0 ) {
+    $post_id = absint( $post_id );
+    if ( ! $post_id )
+        $post_id = get_the_ID();
+
+    return get_post_meta( $post_id );
+}*/
+
+/**
+ * could also be a useful function, but need to think about naming
+ *
+ * Retrieve meta field names for a post.
+ *
+ * If there are no meta fields, then nothing (null) will be returned.
+ *
+ * @since 1.2.0
+ * @link http://codex.wordpress.org/Function_Reference/get_post_custom_keys
+ *
+ * @param int $post_id post ID
+ * @return array|null Either array of the keys, or null if keys could not be retrieved.
+ *
+function get_post_custom_keys( $post_id = 0 ) {
+    $custom = get_post_custom( $post_id );
+
+    if ( !is_array($custom) )
+        return;
+
+    if ( $keys = array_keys($custom) )
+        return $keys;
+}*/
+
+/**
+ * ditto...
+ *
+ * Retrieve values for a custom post field.
+ *
+ * The parameters must not be considered optional. All of the post meta fields
+ * will be retrieved and only the meta field key values returned.
+ *
+ * @since 1.2.0
+ * @link http://codex.wordpress.org/Function_Reference/get_post_custom_values
+ *
+ * @param string $key Meta field key.
+ * @param int $post_id Post ID
+ * @return array Meta field values.
+ *
+function get_post_custom_values( $key = '', $post_id = 0 ) {
+    if ( !$key )
+        return null;
+
+    $custom = get_post_custom($post_id);
+
+    return isset($custom[$key]) ? $custom[$key] : null;
+}*/
